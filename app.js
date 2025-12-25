@@ -1,18 +1,14 @@
 // --- 1. НАСТРОЙКИ ---
-// ВСТАВЬ СВОИ ДАННЫЕ МЕЖДУ КАВЫЧЕК:
 const URL_FROM_SETTINGS = "https://mdnhfgwfstsacspfieqb.supabase.co"; 
-const KEY_FROM_SETTINGS = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // твой длинный anon-ключ
+const KEY_FROM_SETTINGS = "ВСТАВЬ_СВОЙ_КЛЮЧ_ANON_ЗДЕСЬ"; 
 
-if (!URL_FROM_SETTINGS.startsWith("http")) {
-    console.error("ОШИБКА: Ты не вставил URL своего проекта в переменную URL_FROM_SETTINGS!");
-}
-
+// Создаем клиент. Используем имя supabaseClient, чтобы не было конфликтов
 const supabaseClient = window.supabase.createClient(URL_FROM_SETTINGS, KEY_FROM_SETTINGS);
 
 const feed = document.getElementById('feed');
 const formContainer = document.getElementById('form-container');
 
-// Фейковый ID пользователя для голосования (храним в браузере)
+// Локальное хранилище голосов
 let userFingerprint = localStorage.getItem('user_fp');
 if (!userFingerprint) {
     userFingerprint = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -23,56 +19,51 @@ if (!userFingerprint) {
 
 // Загрузка событий
 async function loadEvents() {
-    feed.innerHTML = '<div class="loader">Загрузка...</div>';
+    feed.innerHTML = '<div class="loader">Загрузка горячих событий...</div>';
     
-    // Получаем события и сразу считаем сумму голосов
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('events')
         .select(`*, votes(value)`)
         .order('created_at', { ascending: false });
 
-    if (error) return console.error(error);
+    if (error) {
+        console.error("Ошибка загрузки:", error);
+        feed.innerHTML = '<p>Ошибка подключения к базе данных.</p>';
+        return;
+    }
     renderEvents(data);
 }
 
-// Отрисовка
+// Отрисовка карточек
 function renderEvents(events) {
     feed.innerHTML = '';
-    
-    if (events.length === 0) {
+    if (!events || events.length === 0) {
         feed.innerHTML = '<p>Пока событий нет. Будь первым!</p>';
         return;
     }
 
     events.forEach(item => {
-        // Считаем рейтинг: сумма всех value в массиве votes
-        const rating = item.votes ? item.votes.reduce((acc, vote) => acc + vote.value, 0) : 0;
-        
-        // Определяем класс для цвета
-        let tempClass = '';
-        if (rating > 0) tempClass = 'hot';
-        if (rating < 0) tempClass = 'cold';
+        const rating = item.votes ? item.votes.reduce((acc, v) => acc + v.value, 0) : 0;
+        let tempClass = rating > 0 ? 'hot' : (rating < 0 ? 'cold' : '');
 
-        // Карточка
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-            <img src="${item.image_url || 'https://placehold.co/600x400?text=No+Image'}" class="card-img" onerror="this.src='https://placehold.co/600x400?text=Error'">
+            <img src="${item.image_url || 'https://fav.farm/🖼️'}" class="card-img" onerror="this.src='https://fav.farm/⚠️'">
             <div class="card-body">
                 <div class="card-meta">
-                    <span>${item.city || 'Онлайн'}</span>
-                    <span>${new Date(item.created_at).toLocaleDateString()}</span>
+                    <span>📍 ${item.city || 'Весь мир'}</span>
+                    <span>📅 ${item.event_date || 'Скоро'}</span>
                 </div>
                 <h3 class="card-title">${escapeHtml(item.title)}</h3>
                 <p class="card-desc">${escapeHtml(item.description)}</p>
-                
                 <div class="card-footer">
                     <div class="temperature ${tempClass}">
                         <button class="vote-btn" onclick="vote(${item.id}, -1)">❄️</button>
-                        <span id="rating-${item.id}">${rating}°</span>
+                        <span>${rating}°</span>
                         <button class="vote-btn" onclick="vote(${item.id}, 1)">🔥</button>
                     </div>
-                    <button class="btn-primary" style="padding: 6px 12px; font-size: 12px;">Подробнее</button>
+                    <button class="btn-primary" style="padding: 6px 12px; font-size: 12px;">Открыть</button>
                 </div>
             </div>
         `;
@@ -80,67 +71,62 @@ function renderEvents(events) {
     });
 }
 
-// Добавление события
-async function createEvent() {
-    const title = document.getElementById('inp-title').value;
-    const image_url = document.getElementById('inp-img').value;
-    const description = document.getElementById('inp-desc').value;
-    const city = document.getElementById('inp-city').value;
+// Переименованная функция добавления (чтобы браузер не путался)
+async function handleCreateEvent() {
+    const title = document.getElementById('inp-title').value.trim();
+    const image_url = document.getElementById('inp-img').value.trim();
+    const description = document.getElementById('inp-desc').value.trim();
+    const city = document.getElementById('inp-city').value.trim();
     const event_date = document.getElementById('inp-date').value || null;
 
-    if (!title) return alert("Введите название!");
+    if (!title) return alert("Введите название события!");
 
-    const { error } = await supabase.from('events').insert([{
+    const { error } = await supabaseClient.from('events').insert([{
         title, image_url, description, city, event_date
     }]);
 
     if (error) {
-        alert("Ошибка: " + error.message);
+        alert("Ошибка при сохранении: " + error.message);
     } else {
-        toggleForm(); // Скрываем форму
-        loadEvents(); // Перезагружаем ленту
-        // Очистка полей
+        toggleForm();
+        loadEvents();
+        // Очистка
         document.getElementById('inp-title').value = '';
+        document.getElementById('inp-img').value = '';
+        document.getElementById('inp-desc').value = '';
     }
 }
 
 // Голосование
 async function vote(eventId, value) {
-    // 1. Проверяем, голосовал ли уже этот "слепок" браузера
-    // (В реальном проекте лучше проверять на сервере через RLS, но для MVP так проще)
     const checkKey = `voted_${eventId}`;
-    if (localStorage.getItem(checkKey)) {
-        return alert("Вы уже голосовали за это!");
-    }
+    if (localStorage.getItem(checkKey)) return alert("Вы уже голосовали!");
 
-    // 2. Отправляем в базу
-    const { error } = await supabase.from('votes').insert([{
+    const { error } = await supabaseClient.from('votes').insert([{
         event_id: eventId,
         value: value,
         fingerprint: userFingerprint
     }]);
 
-    if (error) {
-        console.error(error);
-        alert("Ошибка при голосовании");
-    } else {
-        localStorage.setItem(checkKey, true); // Запоминаем
-        loadEvents(); // Обновляем цифры
+    if (!error) {
+        localStorage.setItem(checkKey, true);
+        loadEvents();
     }
 }
 
-// Вспомогательные
 function toggleForm() {
     formContainer.classList.toggle('hidden');
 }
 
 function escapeHtml(text) {
     if (!text) return "";
-    return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
-// Обработчик кнопки "Добавить" в шапке
+// Слушатель кнопки в шапке
 document.getElementById('add-btn').addEventListener('click', toggleForm);
 
-// Старт
+// Запуск при загрузке страницы
 loadEvents();
