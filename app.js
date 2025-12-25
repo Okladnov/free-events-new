@@ -1,9 +1,13 @@
 // --- 1. НАСТРОЙКИ ---
-const SUPABASE_URL = "ТВОЙ_URL"; 
-const SUPABASE_KEY = "ТВОЙ_ANON_KEY";
+// ВСТАВЬ СВОИ ДАННЫЕ МЕЖДУ КАВЫЧЕК:
+const URL_FROM_SETTINGS = "https://mdnhfgwfstsacspfieqb.supabase.co"; 
+const KEY_FROM_SETTINGS = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; // твой длинный anon-ключ
 
-// Проверяем, есть ли библиотека, и создаем клиент с другим именем
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+if (!URL_FROM_SETTINGS.startsWith("http")) {
+    console.error("ОШИБКА: Ты не вставил URL своего проекта в переменную URL_FROM_SETTINGS!");
+}
+
+const supabaseClient = window.supabase.createClient(URL_FROM_SETTINGS, KEY_FROM_SETTINGS);
 
 const feed = document.getElementById('feed');
 const formContainer = document.getElementById('form-container');
