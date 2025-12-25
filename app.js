@@ -1,7 +1,9 @@
 // --- 1. НАСТРОЙКИ ---
-const SUPABASE_URL = "ТВОЙ_URL"; // Вставь из настроек Supabase
-const SUPABASE_KEY = "ТВОЙ_ANON_KEY"; // Вставь из настроек Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "ТВОЙ_URL"; 
+const SUPABASE_KEY = "ТВОЙ_ANON_KEY";
+
+// Проверяем, есть ли библиотека, и создаем клиент с другим именем
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const feed = document.getElementById('feed');
 const formContainer = document.getElementById('form-container');
