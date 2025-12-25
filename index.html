@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreePepper — Бесплатные события</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <div class="logo">🌶️ FreeEvents</div>
+            <button id="add-btn" class="btn-primary">Добавить скидку</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="form-container" class="form-card hidden">
+            <h3>Новое событие</h3>
+            <input type="text" id="inp-title" placeholder="Название (например: Бесплатный концерт...)" required>
+            <input type="url" id="inp-img" placeholder="Ссылка на картинку (https://...)" required>
+            <textarea id="inp-desc" placeholder="Описание и условия..." rows="3"></textarea>
+            <div class="row">
+                <input type="text" id="inp-city" placeholder="Город">
+                <input type="date" id="inp-date">
+            </div>
+            <div class="form-actions">
+                <button onclick="toggleForm()" class="btn-text">Отмена</button>
+                <button onclick="createEvent()" class="btn-primary">Опубликовать</button>
+            </div>
+        </div>
+
+        <div id="feed" class="feed-grid">
+            <div class="loader">Загружаем горячие события...</div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
